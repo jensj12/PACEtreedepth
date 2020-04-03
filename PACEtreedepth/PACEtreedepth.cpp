@@ -1,20 +1,40 @@
-// PACEtreedepth.cpp : This file contains the 'main' function. Program execution begins and ends there.
-//
-
 #include <iostream>
+#include <string>
+#include <sstream>
+#include <vector>
+using namespace std;
+typedef vector<int> vi;
+typedef vector<vi> vvi;
+#define rep(a,b) for(a=0;a<b;a++)
+
+int N, M;
+vvi edge_list;
 
 int main()
 {
-    std::cout << "Hello World!\n";
+	string str;
+	int count = 0;
+	while (true) {
+		getline(cin, str);
+		if (str[0] == 'c') continue;
+		istringstream iss(str);
+		int i, j;
+		if (str[0] == 'p') {
+			// read n and m
+			string waste;
+			iss >> waste;
+			iss >> waste;
+			iss >> N >> M;
+			rep(i, N + 1) {
+				edge_list.push_back(vi());
+			}
+			continue;
+		}
+		iss >> i >> j;
+		edge_list[i].push_back(j);
+		edge_list[j].push_back(i);
+		if (++count == M) break;
+	}
+	cout << edge_list[0][0] << "\n";
 }
 
-// Run program: Ctrl + F5 or Debug > Start Without Debugging menu
-// Debug program: F5 or Debug > Start Debugging menu
-
-// Tips for Getting Started: 
-//   1. Use the Solution Explorer window to add/manage files
-//   2. Use the Team Explorer window to connect to source control
-//   3. Use the Output window to see build output and other messages
-//   4. Use the Error List window to view errors
-//   5. Go to Project > Add New Item to create new code files, or Project > Add Existing Item to add existing code files to the project
-//   6. In the future, to open this project again, go to File > Open > Project and select the .sln file
