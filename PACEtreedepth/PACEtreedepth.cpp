@@ -67,19 +67,56 @@ void remove_edge(Graph &g, int v1, int v2) {
 
 void contract_vertex(Graph &g, int v) {
 	int size = g.adj_list[v].size();
-	for (size_t i = size - 1; i >= 0; i--)
+	for (int i = size - 1; i >= 0; i--)
 	{
-		for (size_t j = 0; j < i; j++)
+		if (g.v_status[g.adj_list[v][i]] == STATUS_ACTIVE)
+			g.v_status[g.adj_list[v][i]] = STATUS_INACTIVE;
+		for (int j = 0; j < i; j++)
 		{
 			add_edge(g, g.adj_list[v][i], g.adj_list[v][j]);
 		}
 		remove_edge(g, v, g.adj_list[v][i]);
 	}
+	g.v_status[v] = STATUS_REMOVED;
+}
+
+int TreeDepth(Graph&);
+
+int maximal_independent_set(Graph &g) {
+	int minDeg = N, v = 0, n = 0;
+	for (int i = 1; i <= N; i++)
+	{
+		if (g.v_status[i] == STATUS_ACTIVE) {
+			n++;
+			if (g.adj_list[i].size() < minDeg) {
+				v = i;
+				minDeg = g.adj_list[i].size();
+			}
+		}
+	}
+	if (n == 0) return TreeDepth(g);
+	if (v == 0) cerr << "ERROR, v=0" << endl;
+	Graph g2 = g;
+	contract_vertex(g2, v);
+	int val, best = maximal_independent_set(g2);
+	for (int i = 0; i < g.adj_list[v].size(); i++) {
+		g2 = g;
+		contract_vertex(g2, g.adj_list[v][i]);
+		val = maximal_independent_set(g2);
+		if (val < best) best = val;
+	}
+	return best;
 }
 
 int TreeDepth(Graph &g) {
-	// TODO
-	return 0;
+	int n = 0;
+	for (int i = 1; i <= N; i++)
+	{
+		if (g.v_status[i] == STATUS_INACTIVE) g.v_status[i] = STATUS_ACTIVE;
+		if (g.v_status[i] == STATUS_ACTIVE) n++;
+	}
+	if (n <= 1) return n;
+	return maximal_independent_set(g) + 1;
 }
 
 int main()
@@ -109,7 +146,7 @@ int main()
 		original_graph.adj_list[j].push_back(i);
 		if (++count == M) break;
 	}
-	Graph g2 = original_graph;
-	cout << TreeDepth(g2) << "\n";
+	//Graph g2 = original_graph;
+	cout << TreeDepth(original_graph) << "\n";
 }
 
