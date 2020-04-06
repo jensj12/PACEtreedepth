@@ -30,6 +30,7 @@ int bestTree[301];
 
 enum VSTATUS
 {
+	STATUS_ROOT,
 	STATUS_REMOVED,
 	STATUS_ORPHAN,
 	STATUS_INACTIVE,
@@ -116,6 +117,22 @@ int maximal_independent_set(Graph &g, int depth) {
 	return best;
 }
 
+int make_root(Graph &g, int v, int depth) {
+	currentTree[v] = currentRoot;
+	int tmpRoot = currentRoot;
+	currentRoot = v;
+	g.v_status[v] = STATUS_ROOT;
+	int deg = g.adj_list[v].size();
+	for (int i = deg - 1; i >= 0; i--)
+	{
+		int other = g.adj_list[v][i];
+		remove_value(g.adj_list[other], v);
+	}
+	int val = TreeDepth(g, depth + 1);
+	currentRoot = tmpRoot;
+	return val;
+}
+
 void match_parents(Graph &g) {
 	for (int i = 1; i <= N; i++)
 	{
@@ -134,7 +151,7 @@ void match_parents(Graph &g) {
 
 int TreeDepth(Graph &g, int depth) {
 	if (depth >= bestDepth) return N;
-	int n = 0, maxDeg = -1, v = 0;
+	int n = 0, maxDeg = -1, v = 0, minDeg = N;
 	for (int i = 1; i <= N; i++)
 	{
 		if (g.v_status[i] == STATUS_INACTIVE) g.v_status[i] = STATUS_ACTIVE;
@@ -145,6 +162,7 @@ int TreeDepth(Graph &g, int depth) {
 				maxDeg = deg;
 				v = i;
 			}
+			if (deg < minDeg) minDeg = deg;
 		}
 	}
 	match_parents(g);
@@ -160,6 +178,12 @@ int TreeDepth(Graph &g, int depth) {
 			bestDepth = depth;
 		}
 		return 1;
+	}
+	//if (maxDeg == n - 1) return make_root(g, v, depth) + 1;
+	if (minDeg == n - 1) {
+		if (depth + n >= bestDepth) return N;
+		contract_vertex(g, v);
+		return TreeDepth(g, depth + 1) + 1;
 	}
 	return maximal_independent_set(g, depth) + 1;
 }
