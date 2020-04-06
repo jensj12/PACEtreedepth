@@ -9,7 +9,7 @@ typedef vector<ii> vii;
 typedef vector<vi> vvi;
 
 int N, M;
-int solution;
+int bestDepth;
 int currentRoot = 0;
 int currentTree[301];
 int bestTree[301];
@@ -133,6 +133,7 @@ void match_parents(Graph &g) {
 }
 
 int TreeDepth(Graph &g, int depth) {
+	if (depth >= bestDepth) return N;
 	int n = 0, maxDeg = -1, v = 0;
 	for (int i = 1; i <= N; i++)
 	{
@@ -148,7 +149,7 @@ int TreeDepth(Graph &g, int depth) {
 	}
 	match_parents(g);
 	if (n == 1) {
-		if (depth < solution) {
+		if (depth < bestDepth) {
 			currentTree[v] = currentRoot;
 			g.v_status[v] = STATUS_REMOVED;
 			match_parents(g);
@@ -156,7 +157,7 @@ int TreeDepth(Graph &g, int depth) {
 			{
 				bestTree[i] = currentTree[i];
 			}
-			solution = depth;
+			bestDepth = depth;
 		}
 		return 1;
 	}
@@ -179,7 +180,7 @@ int main()
 			iss >> waste;
 			iss >> N >> M;
 			//original_graph.n = N;
-			solution = N + 1;
+			bestDepth = N + 1;
 			for (i = 0; i < N + 1; i++) {
 				original_graph.adj_list.push_back(vi());
 				original_graph.v_status.push_back(i == 0 ? STATUS_REMOVED : STATUS_ACTIVE);
