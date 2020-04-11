@@ -152,6 +152,8 @@ void match_parents(Graph &g) {
 int TreeDepth(Graph &g, int depth) {
 	if (depth >= bestTree[0]) return N;
 	int n = 0, maxDeg = -1, v = 0, minDeg = N;
+	bool rematch = false;
+	match_parents(g);
 	for (int i = 1; i <= N; i++)
 	{
 		if (g.v_status[i] == STATUS_INACTIVE) g.v_status[i] = STATUS_ACTIVE;
@@ -164,13 +166,14 @@ int TreeDepth(Graph &g, int depth) {
 			if (deg == 0) {
 				currentTree[i] = currentRoot;
 				g.v_status[i] = STATUS_REMOVED;
+				rematch = true;
 				continue;
 			}
 			n++;
 			if (deg < minDeg) minDeg = deg;
 		}
 	}
-	match_parents(g);
+	if (rematch) match_parents(g);
 	if (n == 0) {
 		if (depth < bestTree[0]) {
 			//currentTree[v] = currentRoot;
