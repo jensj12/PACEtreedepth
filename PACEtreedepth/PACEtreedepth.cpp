@@ -9,10 +9,9 @@ typedef vector<ii> vii;
 typedef vector<vi> vvi;
 
 int N, M;
-int bestDepth;
 int currentRoot = 0;
-int currentTree[301];
-int bestTree[301];
+int currentTree[501];
+int bestTree[501];
 
 // Maximal independent set algorithm:
 // Take a vertex v of minimum degree
@@ -107,7 +106,8 @@ int maximal_independent_set(Graph &g, int depth) {
 	Graph g2 = g;
 	contract_vertex(g2, v);
 	int val, best = maximal_independent_set(g2, depth);
-	for (size_t i = 0; i < g.adj_list[v].size(); i++) {
+	if (minDeg == 1) return best;
+	for (size_t i = 0; i < minDeg; i++) {
 		if (g.v_status[g.adj_list[v][i]] != STATUS_ACTIVE) continue;
 		g2 = g;
 		contract_vertex(g2, g.adj_list[v][i]);
@@ -150,41 +150,47 @@ void match_parents(Graph &g) {
 }
 
 int TreeDepth(Graph &g, int depth) {
-	if (depth >= bestDepth) return N;
+	if (depth >= bestTree[0]) return N;
 	int n = 0, maxDeg = -1, v = 0, minDeg = N;
 	for (int i = 1; i <= N; i++)
 	{
 		if (g.v_status[i] == STATUS_INACTIVE) g.v_status[i] = STATUS_ACTIVE;
 		if (g.v_status[i] == STATUS_ACTIVE) {
-			n++;
 			int deg = g.adj_list[i].size();
 			if (deg > maxDeg) {
 				maxDeg = deg;
 				v = i;
 			}
+			if (deg == 0) {
+				currentTree[i] = currentRoot;
+				g.v_status[i] = STATUS_REMOVED;
+				continue;
+			}
+			n++;
 			if (deg < minDeg) minDeg = deg;
 		}
 	}
 	match_parents(g);
-	if (n == 1) {
-		if (depth < bestDepth) {
-			currentTree[v] = currentRoot;
-			g.v_status[v] = STATUS_REMOVED;
-			match_parents(g);
+	if (n == 0) {
+		if (depth < bestTree[0]) {
+			//currentTree[v] = currentRoot;
+			//g.v_status[v] = STATUS_REMOVED;
+			//match_parents(g);
 			for (int i = 1; i <= N; i++)
 			{
+				if (g.v_status[i] == STATUS_ORPHAN) currentTree[i] = currentRoot;
 				bestTree[i] = currentTree[i];
 			}
-			bestDepth = depth;
+			bestTree[0] = depth;
 		}
 		return 1;
 	}
-	//if (maxDeg == n - 1) return make_root(g, v, depth) + 1;
-	if (minDeg == n - 1) {
+	/*if (minDeg == n - 1) {
 		if (depth + n >= bestDepth) return N;
 		contract_vertex(g, v);
 		return TreeDepth(g, depth + 1) + 1;
-	}
+	}*/
+	if (maxDeg == n - 1) return make_root(g, v, depth) + 1;
 	return maximal_independent_set(g, depth) + 1;
 }
 
@@ -204,7 +210,7 @@ int main()
 			iss >> waste;
 			iss >> N >> M;
 			//original_graph.n = N;
-			bestDepth = N + 1;
+			bestTree[0] = N + 1;
 			for (i = 0; i < N + 1; i++) {
 				original_graph.adj_list.push_back(vi());
 				original_graph.v_status.push_back(i == 0 ? STATUS_REMOVED : STATUS_ACTIVE);
@@ -217,6 +223,7 @@ int main()
 		if (++count == M) break;
 	}
 	cout << TreeDepth(original_graph, 0) << endl;
+	//cerr << "CheckDepth: " << bestTree[0] << endl;
 	for (int i = 1; i <= N; i++)
 	{
 		cout << bestTree[i] << endl;
