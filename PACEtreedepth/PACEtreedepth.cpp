@@ -4,6 +4,9 @@
 #include <vector>
 #include <stack>
 #include <algorithm>
+#include <csignal>
+//#include <unistd.h>
+
 using namespace std;
 typedef pair<int, int> ii;
 typedef vector<int> vi;
@@ -12,9 +15,16 @@ typedef vector<vi> vvi;
 
 int N, M;
 int currentRoot = 0;
-int currentTree[501];
-int bestTree[501];
-stack<vii> order;
+vi currentTree;
+vi bestTree;
+vii order;
+
+volatile sig_atomic_t tle = 0;
+
+void term(int signum)
+{
+	tle = 1;
+}
 
 // Maximal independent set algorithm:
 // Take a vertex v of minimum degree
@@ -92,29 +102,19 @@ void contract_vertex(Graph &g, int v) {
 
 int TreeDepth(Graph&, int);
 
+// Reduce recursion depth!!!
 int maximal_independent_set(Graph &g, int depth, int status) {
 	int deg = N, v = 0, n = 0;
 	while (true)
 	{
-		if (status == order.top().size()) return TreeDepth(g, depth + 1);
-		v = order.top()[status].second;
+		if (status == order.size() || tle) return TreeDepth(g, depth + 1);
+		v = order[status].second;
 		if (g.v_status[v] == STATUS_ACTIVE) break;
 		status++;
 	}
 	deg = g.adj_list[v].size();
-	//if (v == 0) cerr << "ERROR, v=0" << endl;
-	Graph g2 = g;
-	contract_vertex(g2, v);
-	int val, best = maximal_independent_set(g2, depth, status + 1);
-	if (deg == 1) return best;
-	for (int i = 0; i < deg; i++) {
-		if (g.v_status[g.adj_list[v][i]] != STATUS_ACTIVE) continue;
-		g2 = g;
-		contract_vertex(g2, g.adj_list[v][i]);
-		val = maximal_independent_set(g2, depth, status + 1);
-		if (val < best) best = val;
-	}
-	return best;
+	contract_vertex(g, v);
+	return maximal_independent_set(g, depth, status + 1);
 }
 
 int make_root(Graph &g, int v, int depth) {
@@ -150,9 +150,8 @@ void match_parents(Graph &g) {
 }
 
 int TreeDepth(Graph &g, int depth) {
-	if (depth >= bestTree[0]) return N;
+	if (depth >= bestTree[0] || tle) return N;
 	int n = 0, maxDeg = -1, v = 0, minDeg = N;
-	vii newOrder = vii();
 	bool rematch = false;
 	match_parents(g);
 	for (int i = 1; i <= N; i++)
@@ -170,7 +169,6 @@ int TreeDepth(Graph &g, int depth) {
 				rematch = true;
 				continue;
 			}
-			newOrder.emplace_back(deg, i);
 			n++;
 			if (deg < minDeg) minDeg = deg;
 		}
@@ -193,15 +191,14 @@ int TreeDepth(Graph &g, int depth) {
 		return TreeDepth(g, depth + 1) + 1;
 	}*/
 	if (maxDeg == n - 1) return make_root(g, v, depth) + 1;
-	sort(newOrder.begin(), newOrder.end());
-	order.push(newOrder);
 	int val = maximal_independent_set(g, depth, 0) + 1;
-	order.pop();
 	return val;
 }
 
 int main()
 {
+	signal(SIGTERM, term);
+
 	string str;
 	int count = 0;
 	while (true) {
@@ -216,6 +213,8 @@ int main()
 			iss >> waste;
 			iss >> N >> M;
 			//original_graph.n = N;
+			currentTree = vi(N + 1, 0);
+			bestTree = vi(N + 1, 0);
 			bestTree[0] = N + 1;
 			for (i = 0; i < N + 1; i++) {
 				original_graph.adj_list.push_back(vi());
@@ -228,8 +227,26 @@ int main()
 		original_graph.adj_list[j].push_back(i);
 		if (++count == M) break;
 	}
-	cout << TreeDepth(original_graph, 0) << endl;
-	//cerr << "CheckDepth: " << bestTree[0] << endl;
+	for (int i = 1; i <= N; i++)
+	{
+		order.emplace_back(original_graph.adj_list[i].size(), i);
+	}
+	sort(order.begin(), order.end());
+	while (!tle)
+	{
+		Graph g2 = original_graph;
+		TreeDepth(g2, 0);
+		ii tmp;
+		for (int swp, i = 0; i < N; i++)
+		{
+			swp = rand() % N;
+			tmp = order[swp];
+			order[swp] = order[i];
+			order[i] = tmp;
+		}
+	}
+	//cout << TreeDepth(original_graph, 0) << endl;
+	cout << bestTree[0] + 1 << endl;
 	for (int i = 1; i <= N; i++)
 	{
 		//cerr << i << ": ";
