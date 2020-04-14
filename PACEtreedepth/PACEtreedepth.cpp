@@ -191,6 +191,7 @@ int TreeDepth(Graph &g, int depth) {
 	if (minDeg == n - 1) {
 		if (depth + n >= bestTree[0]) return N;
 		// immediately complete the tree, we have a complete graph
+		int tmpRoot = currentRoot;
 		for (int i = 1; i <= N; i++)
 		{
 			if (g.v_status[i] == STATUS_ACTIVE) {
@@ -206,6 +207,7 @@ int TreeDepth(Graph &g, int depth) {
 			bestTree[i] = currentTree[i];
 		}
 		bestTree[0] = depth + n - 1;
+		currentRoot = tmpRoot;
 		return n;
 	}
 	if (maxDeg == n - 1) return make_root(g, v, depth) + 1;
