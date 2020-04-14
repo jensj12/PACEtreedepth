@@ -106,7 +106,7 @@ int maximal_independent_set(Graph &g, int depth, int status) {
 	Graph g2 = g;
 	contract_vertex(g2, v);
 	int val, best = maximal_independent_set(g2, depth, status + 1);
-	if (deg == 1) return best;
+	if (deg == 1 || (deg == 2 && contains(g.adj_list[g.adj_list[v][0]], g.adj_list[v][1]))) return best;
 	for (int i = 0; i < deg; i++) {
 		if (g.v_status[g.adj_list[v][i]] != STATUS_ACTIVE) continue;
 		g2 = g;
@@ -142,6 +142,7 @@ void match_parents(Graph &g) {
 				if (g.v_status[g.adj_list[i][j]] == STATUS_REMOVED || g.v_status[g.adj_list[i][j]] == STATUS_ORPHAN) {
 					g.v_status[i] = STATUS_REMOVED;
 					currentTree[i] = g.adj_list[i][j];
+					g.adj_list[i].clear();
 					break;
 				}
 			}
@@ -187,11 +188,26 @@ int TreeDepth(Graph &g, int depth) {
 		}
 		return 1;
 	}
-	/*if (minDeg == n - 1) {
-		if (depth + n >= bestDepth) return N;
-		contract_vertex(g, v);
-		return TreeDepth(g, depth + 1) + 1;
-	}*/
+	if (minDeg == n - 1) {
+		if (depth + n >= bestTree[0]) return N;
+		// immediately complete the tree, we have a complete graph
+		for (int i = 1; i <= N; i++)
+		{
+			if (g.v_status[i] == STATUS_ACTIVE) {
+				currentTree[i] = currentRoot;
+				currentRoot = i;
+			}
+		}
+		for (int i = 1; i <= N; i++)
+		{
+			if (g.v_status[i] == STATUS_ORPHAN) {
+				currentTree[i] = currentRoot;
+			}
+			bestTree[i] = currentTree[i];
+		}
+		bestTree[0] = depth + n - 1;
+		return n;
+	}
 	if (maxDeg == n - 1) return make_root(g, v, depth) + 1;
 	sort(newOrder.begin(), newOrder.end());
 	order.push(newOrder);
