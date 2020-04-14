@@ -100,35 +100,6 @@ void contract_vertex(Graph &g, int v) {
 	currentTree[v] = 0;
 }
 
-int TreeDepth(Graph&, int);
-
-int maximal_independent_set(Graph &g, int depth) {
-	int v = 0;
-	for (size_t i = 0; i < order.size() && !tle; i++)
-	{
-		v = order[i].second;
-		if (g.v_status[v] == STATUS_ACTIVE)
-			contract_vertex(g, v);
-	}
-	return TreeDepth(g, depth + 1);
-}
-
-int make_root(Graph &g, int v, int depth) {
-	currentTree[v] = currentRoot;
-	int tmpRoot = currentRoot;
-	currentRoot = v;
-	g.v_status[v] = STATUS_ROOT;
-	int deg = g.adj_list[v].size();
-	for (int i = deg - 1; i >= 0; i--)
-	{
-		int other = g.adj_list[v][i];
-		remove_value(g.adj_list[other], v);
-	}
-	int val = TreeDepth(g, depth + 1);
-	currentRoot = tmpRoot;
-	return val;
-}
-
 void match_parents(Graph &g) {
 	for (int i = 1; i <= N; i++)
 	{
@@ -145,66 +116,93 @@ void match_parents(Graph &g) {
 	}
 }
 
-int TreeDepth(Graph &g, int depth) {
-	if (depth >= bestTree[0] || tle) return N;
-	int n = 0, maxDeg = -1, v = 0, minDeg = N;
-	bool rematch = false;
-	match_parents(g);
-	for (int i = 1; i <= N; i++)
+void TreeDepth(Graph &g, int depth) {
+	while (true)
 	{
-		if (g.v_status[i] == STATUS_INACTIVE) g.v_status[i] = STATUS_ACTIVE;
-		if (g.v_status[i] == STATUS_ACTIVE) {
-			int deg = g.adj_list[i].size();
-			if (deg > maxDeg) {
-				maxDeg = deg;
-				v = i;
+		depth++;
+		if (depth >= bestTree[0] || tle) return;
+		int n = 0, maxDeg = -1, v = 0, minDeg = N;
+		bool rematch = false;
+		match_parents(g);
+		for (int i = 1; i <= N; i++)
+		{
+			if (g.v_status[i] == STATUS_INACTIVE) g.v_status[i] = STATUS_ACTIVE;
+			if (g.v_status[i] == STATUS_ACTIVE) {
+				int deg = g.adj_list[i].size();
+				if (deg > maxDeg) {
+					maxDeg = deg;
+					v = i;
+				}
+				// Vertices without edges can be purged immediately
+				if (deg == 0) {
+					currentTree[i] = currentRoot;
+					g.v_status[i] = STATUS_REMOVED;
+					rematch = true;
+					continue;
+				}
+				n++;
+				if (deg < minDeg) minDeg = deg;
 			}
-			if (deg == 0) {
-				currentTree[i] = currentRoot;
-				g.v_status[i] = STATUS_REMOVED;
-				rematch = true;
-				continue;
-			}
-			n++;
-			if (deg < minDeg) minDeg = deg;
 		}
-	}
-	if (rematch) match_parents(g);
-	if (n == 0) {
-		if (depth < bestTree[0]) {
+		if (rematch) match_parents(g);
+
+		// Shrinking complete, log solution
+		if (n == 0) {
+			if (depth < bestTree[0]) {
+				for (int i = 1; i <= N; i++)
+				{
+					if (g.v_status[i] == STATUS_ORPHAN) currentTree[i] = currentRoot;
+					bestTree[i] = currentTree[i];
+				}
+				bestTree[0] = depth;
+			}
+			return;
+		}
+		if (tle) return;
+
+		// If the graph is complete, build the remaining tree in any order
+		if (minDeg == n - 1) {
+			if (depth + n >= bestTree[0]) return;
 			for (int i = 1; i <= N; i++)
 			{
-				if (g.v_status[i] == STATUS_ORPHAN) currentTree[i] = currentRoot;
+				if (g.v_status[i] == STATUS_ACTIVE) {
+					currentTree[i] = currentRoot;
+					currentRoot = i;
+				}
+			}
+			for (int i = 1; i <= N; i++)
+			{
+				if (g.v_status[i] == STATUS_ORPHAN) {
+					currentTree[i] = currentRoot;
+				}
 				bestTree[i] = currentTree[i];
 			}
-			bestTree[0] = depth;
+			bestTree[0] = depth + n - 1;
+			return;
 		}
-		return 1;
-	}
-	if (tle) return N;
-	if (minDeg == n - 1) {
-		if (depth + n >= bestTree[0]) return N;
-		// immediately complete the tree, we have a complete graph
-		for (int i = 1; i <= N; i++)
-		{
-			if (g.v_status[i] == STATUS_ACTIVE) {
-				currentTree[i] = currentRoot;
-				currentRoot = i;
+
+		// Remove a vertex that is connected to all other vertices
+		if (maxDeg == n - 1) {
+			currentTree[v] = currentRoot;
+			currentRoot = v;
+			g.v_status[v] = STATUS_ROOT;
+			int deg = g.adj_list[v].size();
+			for (int i = deg - 1; i >= 0; i--)
+			{
+				int other = g.adj_list[v][i];
+				remove_value(g.adj_list[other], v);
 			}
+			continue;
 		}
-		for (int i = 1; i <= N; i++)
+
+		// Find a maximal independent set
+		for (size_t i = 0; i < order.size() && !tle; i++)
 		{
-			if (g.v_status[i] == STATUS_ORPHAN) {
-				currentTree[i] = currentRoot;
-			}
-			bestTree[i] = currentTree[i];
+			v = order[i].second;
+			if (g.v_status[v] == STATUS_ACTIVE)
+				contract_vertex(g, v);
 		}
-		bestTree[0] = depth + n - 1;
-		return n;
 	}
-	if (maxDeg == n - 1) return make_root(g, v, depth) + 1;
-	int val = maximal_independent_set(g, depth) + 1;
-	return val;
 }
 
 int main()
@@ -247,6 +245,7 @@ int main()
 	Graph g2 = original_graph;
 	while (!tle)
 	{
+		currentRoot = 0;
 		TreeDepth(g2, 0);
 		if (tle) break;
 		ii tmp;
