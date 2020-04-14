@@ -102,19 +102,15 @@ void contract_vertex(Graph &g, int v) {
 
 int TreeDepth(Graph&, int);
 
-// Reduce recursion depth!!!
-int maximal_independent_set(Graph &g, int depth, int status) {
-	int deg = N, v = 0, n = 0;
-	while (true)
+int maximal_independent_set(Graph &g, int depth) {
+	int v = 0;
+	for (size_t i = 0; i < order.size() && !tle; i++)
 	{
-		if (status == order.size() || tle) return TreeDepth(g, depth + 1);
-		v = order[status].second;
-		if (g.v_status[v] == STATUS_ACTIVE) break;
-		status++;
+		v = order[i].second;
+		if (g.v_status[v] == STATUS_ACTIVE)
+			contract_vertex(g, v);
 	}
-	deg = g.adj_list[v].size();
-	contract_vertex(g, v);
-	return maximal_independent_set(g, depth, status + 1);
+	return TreeDepth(g, depth + 1);
 }
 
 int make_root(Graph &g, int v, int depth) {
@@ -185,13 +181,29 @@ int TreeDepth(Graph &g, int depth) {
 		}
 		return 1;
 	}
-	/*if (minDeg == n - 1) {
-		if (depth + n >= bestDepth) return N;
-		contract_vertex(g, v);
-		return TreeDepth(g, depth + 1) + 1;
-	}*/
+	if (tle) return N;
+	if (minDeg == n - 1) {
+		if (depth + n >= bestTree[0]) return N;
+		// immediately complete the tree, we have a complete graph
+		for (int i = 1; i <= N; i++)
+		{
+			if (g.v_status[i] == STATUS_ACTIVE) {
+				currentTree[i] = currentRoot;
+				currentRoot = i;
+			}
+		}
+		for (int i = 1; i <= N; i++)
+		{
+			if (g.v_status[i] == STATUS_ORPHAN) {
+				currentTree[i] = currentRoot;
+			}
+			bestTree[i] = currentTree[i];
+		}
+		bestTree[0] = depth + n - 1;
+		return n;
+	}
 	if (maxDeg == n - 1) return make_root(g, v, depth) + 1;
-	int val = maximal_independent_set(g, depth, 0) + 1;
+	int val = maximal_independent_set(g, depth) + 1;
 	return val;
 }
 
@@ -232,10 +244,11 @@ int main()
 		order.emplace_back(original_graph.adj_list[i].size(), i);
 	}
 	sort(order.begin(), order.end());
+	Graph g2 = original_graph;
 	while (!tle)
 	{
-		Graph g2 = original_graph;
 		TreeDepth(g2, 0);
+		if (tle) break;
 		ii tmp;
 		for (int swp, i = 0; i < N; i++)
 		{
@@ -244,6 +257,7 @@ int main()
 			order[swp] = order[i];
 			order[i] = tmp;
 		}
+		g2 = original_graph;
 	}
 	//cout << TreeDepth(original_graph, 0) << endl;
 	cout << bestTree[0] + 1 << endl;
