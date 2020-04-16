@@ -199,8 +199,10 @@ void TreeDepth(Graph &g, int depth) {
 		for (size_t i = 0; i < order.size() && !tle; i++)
 		{
 			v = order[i].second;
-			if (g.v_status[v] == STATUS_ACTIVE)
+			if (g.v_status[v] == STATUS_ACTIVE) {
+				if (g.adj_list[v].size() + depth + 1 >= bestTree[0]) return;
 				contract_vertex(g, v);
+			}
 		}
 	}
 }
