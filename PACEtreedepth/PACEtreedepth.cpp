@@ -102,15 +102,17 @@ int maximal_independent_set(Graph &g, int depth, int status) {
 		status++;
 	}
 	deg = g.adj_list[v].size();
-	//if (v == 0) cerr << "ERROR, v=0" << endl;
+	if (deg + depth >= bestTree[0]) return N;
 	Graph g2 = g;
 	contract_vertex(g2, v);
-	int val, best = maximal_independent_set(g2, depth, status + 1);
+	int best = maximal_independent_set(g2, depth, status + 1);
 	if (deg == 1 || (deg == 2 && contains(g.adj_list[g.adj_list[v][0]], g.adj_list[v][1]))) return best;
+	int val, v2;
 	for (int i = 0; i < deg; i++) {
-		if (g.v_status[g.adj_list[v][i]] != STATUS_ACTIVE) continue;
+		v2 = g.adj_list[v][i];
+		if (g.v_status[v2] != STATUS_ACTIVE || g.adj_list[v2].size() + depth >= bestTree[0]) continue;
 		g2 = g;
-		contract_vertex(g2, g.adj_list[v][i]);
+		contract_vertex(g2, v2);
 		val = maximal_independent_set(g2, depth, status + 1);
 		if (val < best) best = val;
 	}
