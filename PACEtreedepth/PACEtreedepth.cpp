@@ -40,7 +40,6 @@ enum VSTATUS
 };
 
 struct Graph {
-	//int n;
 	vvi adj_list;
 	vector<VSTATUS> v_status;
 } original_graph;
@@ -93,7 +92,8 @@ void contract_vertex(Graph &g, int v) {
 int TreeDepth(Graph&, int);
 
 int maximal_independent_set(Graph &g, int depth, int status) {
-	int deg = N, v = 0, n = 0;
+	// Find the next active vertex in the list
+	int v;
 	while (true)
 	{
 		if (status == order.top().size()) return TreeDepth(g, depth + 1);
@@ -101,12 +101,18 @@ int maximal_independent_set(Graph &g, int depth, int status) {
 		if (g.v_status[v] == STATUS_ACTIVE) break;
 		status++;
 	}
-	deg = g.adj_list[v].size();
+	int deg = g.adj_list[v].size();
 	if (deg + depth >= bestTree[0]) return N;
+
+	// Try to contract current vertex v
 	Graph g2 = g;
 	contract_vertex(g2, v);
 	int best = maximal_independent_set(g2, depth, status + 1);
+	// When in a clique and no edges to vertices outside that clique, taking this vertex is an optimal choice
+	// We only check this for cliques of size 2 or 3
 	if (deg == 1 || (deg == 2 && contains(g.adj_list[g.adj_list[v][0]], g.adj_list[v][1]))) return best;
+
+	// Then try to contract all neighbours of v
 	int val, v2;
 	for (int i = 0; i < deg; i++) {
 		v2 = g.adj_list[v][i];
@@ -119,6 +125,7 @@ int maximal_independent_set(Graph &g, int depth, int status) {
 	return best;
 }
 
+// Remove vertex v from the graph and update currentRoot variable for this branch
 int make_root(Graph &g, int v, int depth) {
 	currentTree[v] = currentRoot;
 	int tmpRoot = currentRoot;
@@ -130,11 +137,13 @@ int make_root(Graph &g, int v, int depth) {
 		int other = g.adj_list[v][i];
 		remove_value(g.adj_list[other], v);
 	}
+	g.adj_list[v].clear();
 	int val = TreeDepth(g, depth + 1);
 	currentRoot = tmpRoot;
 	return val;
 }
 
+// Make all vertices marked as orphan check whether they have a parent
 void match_parents(Graph &g) {
 	for (int i = 1; i <= N; i++)
 	{
@@ -179,6 +188,9 @@ int TreeDepth(Graph &g, int depth) {
 		}
 	}
 	if (rematch) match_parents(g);
+
+	// No more vertices, so we're done
+	// Note that the last vertices had degree 0 and were removed above
 	if (n == 0) {
 		if (depth < bestTree[0]) {
 			for (int i = 1; i <= N; i++)
@@ -190,9 +202,10 @@ int TreeDepth(Graph &g, int depth) {
 		}
 		return 1;
 	}
+
+	// If we have a complete graph, immediately construct the treedepth decomposition
 	if (minDeg == n - 1) {
 		if (depth + n >= bestTree[0]) return N;
-		// immediately complete the tree, we have a complete graph
 		int tmpRoot = currentRoot;
 		for (int i = 1; i <= N; i++)
 		{
@@ -212,7 +225,11 @@ int TreeDepth(Graph &g, int depth) {
 		currentRoot = tmpRoot;
 		return n;
 	}
+
+	// If a vertex is connected to all others, it must be the root
 	if (maxDeg == n - 1) return make_root(g, v, depth) + 1;
+
+	// Sort all remaining vertices on degree and recurse
 	sort(newOrder.begin(), newOrder.end());
 	order.push(newOrder);
 	int val = maximal_independent_set(g, depth, 0) + 1;
@@ -249,7 +266,7 @@ int main()
 		if (++count == M) break;
 	}
 	cout << TreeDepth(original_graph, 0) << endl;
-	//cerr << "CheckDepth: " << bestTree[0] << endl;
+	//cerr << "CheckDepth: " << bestTree[0] + 1 << endl;
 	for (int i = 1; i <= N; i++)
 	{
 		//cerr << i << ": ";
