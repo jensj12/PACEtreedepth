@@ -5,7 +5,6 @@
 #include <stack>
 #include <algorithm>
 #include <csignal>
-//#include <unistd.h>
 
 using namespace std;
 typedef pair<int, int> ii;
@@ -26,20 +25,6 @@ void term(int signum)
 	tle = 1;
 }
 
-// Maximal independent set algorithm:
-// Take a vertex v of minimum degree
-// Try all vertices of N(v) and recurse
-// O(1.4432^n)
-
-// Treedepth algorithm:
-// Try all maximal independent sets
-// Contract and recurse
-// T(n) = O(1.4432^n) * T(n-2)
-// T(n) = O(1.4432^(n*n/2))
-// Which means we can handle graphs with 13 vertices
-// What to expect with O(c^O(n^2))
-// But it will hopefully do better
-
 enum VSTATUS
 {
 	STATUS_ROOT,
@@ -50,7 +35,6 @@ enum VSTATUS
 };
 
 struct Graph {
-	//int n;
 	vvi adj_list;
 	vector<VSTATUS> v_status;
 } original_graph;
@@ -124,6 +108,8 @@ void TreeDepth(Graph &g, int depth) {
 		int n = 0, maxDeg = -1, v = 0, minDeg = N;
 		bool rematch = false;
 		match_parents(g);
+
+		// Cleanup, and calculate some stats
 		for (int i = 1; i <= N; i++)
 		{
 			if (g.v_status[i] == STATUS_INACTIVE) g.v_status[i] = STATUS_ACTIVE;
@@ -133,7 +119,7 @@ void TreeDepth(Graph &g, int depth) {
 					maxDeg = deg;
 					v = i;
 				}
-				// Vertices without edges can be purged immediately
+				// Vertices without edges can be removed immediately
 				if (deg == 0) {
 					currentTree[i] = currentRoot;
 					g.v_status[i] = STATUS_REMOVED;
@@ -146,7 +132,7 @@ void TreeDepth(Graph &g, int depth) {
 		}
 		if (rematch) match_parents(g);
 
-		// Shrinking complete, log solution
+		// No more vertices to contract, log solution
 		if (n == 0) {
 			if (depth < bestTree[0]) {
 				for (int i = 1; i <= N; i++)
